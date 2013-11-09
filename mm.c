@@ -27,15 +27,15 @@
  ********************************************************/
 team_t team = {
     /* Team name */
-    "",
+    "travis42+cwinkows",
     /* First member's full name */
-    "",
+    "Travis Porter",
     /* First member's SLO (@cs.vt.edu) email address */
-    "",
+    "travis42",
     /* Second member's full name (leave blank if none) */
-    "",
+    "Calvin Winkowski",
     /* Second member's SLO (@cs.vt.edu) email address (leave blank if none) */
-    ""
+    "cwinkows"
 };
 
 /* 
