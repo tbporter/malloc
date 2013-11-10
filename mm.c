@@ -71,14 +71,14 @@ static size_t roundup(size_t size)
 /* 
  * This C struct captures an allocated header.
  *
- * By casting a memory location to a pointer to a allocated_block_header,
+ * By casting a memory location to a pointer to a block_header,
  * we are able to treat a part of memory as if a header had been allocated
  * in it.
  *
- * Note: you should never define instances of 'struct allocated_block_header' -
+ * Note: you should never define instances of 'struct block_header' -
  *       all accesses will be through pointers.
  */
-struct allocated_block_header {
+struct block_header {
     unsigned char prev_free : 1;
     unsigned char free : 1;
     size_t prev_size;
@@ -103,13 +103,13 @@ int mm_init(void)
 {
     /* Sanity checks. */
     assert((ALIGNMENT & (ALIGNMENT - 1)) == 0); // power of 2
-    assert(sizeof(struct allocated_block_header) == ALIGNMENT);
-    assert(offsetof(struct allocated_block_header, size) == 0);
-    assert(offsetof(struct allocated_block_header, payload) % ALIGNMENT == 0);
+    assert(sizeof(struct block_header) == ALIGNMENT);
+    assert(offsetof(struct block_header, size) == 0);
+    assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
     return 0;
 }
-
-static malloc_freelist(size_t size) {
+/* Checks freelists for an appropriate malloc */
+static void* malloc_freelist(size_t size) {
     return NULL;
 }
 
@@ -119,14 +119,14 @@ static malloc_freelist(size_t size) {
  */
 void *mm_malloc(size_t size)
 {
-    int newsize = roundup(size + sizeof(struct allocated_block_header));
+    int newsize = roundup(size + sizeof(struct block_header));
     
     void* reused = malloc_freelist(size_t size);
     if (reused != NULL) {
         return reused;
     }
 
-    struct allocated_block_header * blk = mem_sbrk(newsize);
+    struct block_header * blk = mem_sbrk(newsize);
     if (blk == NULL)
 	return NULL;
 
@@ -150,12 +150,12 @@ void *mm_realloc(void *oldptr, size_t size)
     if (newptr == NULL)
       return NULL;
 
-    /* Assuming 'oldptr' was a '&payload[0]' in an allocated_block_header,
+    /* Assuming 'oldptr' was a '&payload[0]' in an block_header,
      * determine its start as 'oldblk'.  Then its size can be accessed
      * more easily.
      */
-    struct allocated_block_header *oldblk;
-    oldblk = oldptr - offsetof(struct allocated_block_header, payload);
+    struct block_header *oldblk;
+    oldblk = oldptr - offsetof(struct block_header, payload);
 
     size_t copySize = oldblk->size;
     if (size < copySize)
