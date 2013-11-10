@@ -20,7 +20,6 @@
 #include "mm.h"
 #include "memlib.h"
 #include "config.h"             /* defines ALIGNMENT */
-#include "slist.h"
 
 /* Some useful macros */
 static void* prev_block(struct* block_header) {
