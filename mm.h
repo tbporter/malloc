@@ -19,8 +19,4 @@ typedef struct {
     char *id2;      /* login ID of second member */
 } team_t;
 
-
-slist_node* get_free_list(size_t size);
-
-
 extern team_t team;
