@@ -59,6 +59,10 @@ team_t team = {
     "cwinkows"
 };
 
+const int NUM_BUCKETS = 6;
+slist_node* free_lists[NUM_BUCKETS];
+
+
 /* 
  * If size is a multiple of ALIGNMENT, return size.
  * Else, return next larger multiple of ALIGNMENT:
@@ -115,7 +119,16 @@ int mm_init(void)
 }
 /* Checks freelists for an appropriate malloc */
 static void* malloc_freelist(size_t size) {
-    return NULL;
+    slist_node* list = free_lists[get_free_list(size)];
+    if(list != NULL){
+        while(list->next != NULL){
+            list = list->next;
+        }
+    }
+    else{
+        return NULL;
+    }
+
 }
 
 /* 
@@ -175,8 +188,6 @@ void *mm_realloc(void *oldptr, size_t size)
     return newptr;
 }
 
-const int NUM_BUCKETS = 6;
-slist_node* free_lists[NUM_BUCKETS];
 
 int get_free_list(size_t size){
     int i;
@@ -211,5 +222,4 @@ void remove_node(slist_node* list, void* n){
         list->next = node->next;
     }
 }
-
 // vim: ts=8
