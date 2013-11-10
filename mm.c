@@ -168,42 +168,26 @@ slist_node* get_free_list(size_t size){
 }
 
 typedef struct slist_node_struct {
-    struct node_struct* next;
-    void* data; 
+    struct node_struct* next; 
 } slist_node;
 
-slist_node* create_node(void* d) {
-    slist_node* node;
-
-    node = mem_sbrk(sizeof(node));
-    node->next = NULL;
-    node->data = d; 
-
-    return node;
+void insert_node(slist_node* list, void* node){
+    ((slist_node) node)->next = list;
 }
 
-slist_node* insert_node(slist_node* list, void* data){
-    slist_node* node;
-
-    node=create_node(data);
-    node->next = list;
+void remove_node(slist_node* list, void* n){
     
-    return newnode;
-}
+    slist_node* node = ((slist_node) n);
 
-//doesn't deallocate the node
-void remove_node(slist_node* list, slist_node* node){
-    
-    if(list == NULL || slist_node == NULL)
+    if(list == NULL)
         return;
 
-    node* cur = list;
 
-    while(cur->next != NULL && cur->next != node)
-        cur = cur->next;
+    while(list->next != NULL && list->next != node)
+        list = list->next;
 
-    if(cur->next != NULL){
-        cur->next = node->next;
+    if(list->next != NULL){
+        list->next = node->next;
     }
 }
 
