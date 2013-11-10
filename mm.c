@@ -20,7 +20,7 @@
 #include "mm.h"
 #include "memlib.h"
 #include "config.h"             /* defines ALIGNMENT */
-
+#include "slist.h"
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
  * provide your team information in the following struct.
@@ -136,5 +136,23 @@ void *mm_realloc(void *oldptr, size_t size)
     mm_free(oldptr);
     return newptr;
 }
+
+const int NUM_BUCKETS = 5;
+slist_node* free_lists[NUM_BUCKETS];
+
+slist_node* get_free_list(size_t size){
+
+    if(size <= 16)
+        return free_lists[0];
+    else if(size <= 32)
+        return free_lists[1];
+    else if(size <= 64)
+        return free_lists[2];
+    else if(size <= 128)
+        return free_lists[3];
+    else
+        return free_lists[4];
+}
+
 
 // vim: ts=8
