@@ -28,6 +28,9 @@ static void* prev_block(struct* block_header) {
 static void* next_block(struct* block_header) {
     return ((void*) block_header) - header->size;
 }
+static struct block_header* header_from_node(slist_node_t node) {
+    return (struct block_header*) ((void*) node - sizeof(struct block_header));
+}
 /* Round up to next power of 2 */
 static size_t round_power(size_t size) {
     size--;
@@ -192,11 +195,11 @@ int get_free_list(size_t size){
     for(i=0; i<NUM_BUCKETS; i++){
         if(size <= startsize)
             return i;
-        startsize = startsize << 1; 
+        startsize = startsize << 1;
     }
 }
 
-typedef struct slist_node_struct {
+typedef struct slist_node_t {
     struct node_struct* next; 
 } slist_node;
 
