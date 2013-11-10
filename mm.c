@@ -136,7 +136,7 @@ void *mm_malloc(size_t size)
 
     blk->size = size;
     blk->free = true;
-    blk->prev_size = (void*) blk - (void*) last_header;
+    blk->prev_size = (size_t) ((void*) blk - (void*) last_header);
     blk->prev_free = last_header->free;
     last_header = blk;
 
