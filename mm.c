@@ -21,6 +21,25 @@
 #include "memlib.h"
 #include "config.h"             /* defines ALIGNMENT */
 #include "slist.h"
+
+/* Some useful macros */
+static void* prev_block(struct* block_header) {
+    return ((void*) block_header) - header->prev_size;
+}
+static void* next_block(struct* block_header) {
+    return ((void*) block_header) - header->size;
+}
+/* Round up to next power of 2 */
+static size_t round_power(size_t size) {
+    size--;
+    size |= size >> 1;
+    size |= size >> 2;
+    size |= size >> 4;
+    size |= size >> 8;
+    size |= size >> 16;
+    return 1 + size;
+}
+
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
  * provide your team information in the following struct.
@@ -61,8 +80,14 @@ static size_t roundup(size_t size)
  *       all accesses will be through pointers.
  */
 struct allocated_block_header {
-    size_t      size;
-
+    union {
+        unsigned char free : 1;
+        size_t size;
+    } block;
+    union {
+        unsigned char free : 1;
+        size_t size;
+    } prev;
     /* 
      * Zero length arrays do not add size to the structure, they simply
      * provide a syntactic form to refer to a char array following the
