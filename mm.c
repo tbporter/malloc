@@ -181,7 +181,7 @@ int get_free_list(size_t size){
     for(i=0; i<NUM_BUCKETS; i++){
         if(size <= startsize)
             return i;
-        startsize = startsize << 1; 
+        startsize = startsize << 1;
     }
 }
 
