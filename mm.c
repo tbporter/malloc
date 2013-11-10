@@ -80,14 +80,10 @@ static size_t roundup(size_t size)
  *       all accesses will be through pointers.
  */
 struct allocated_block_header {
-    union {
-        unsigned char free : 1;
-        size_t size;
-    } block;
-    union {
-        unsigned char free : 1;
-        size_t size;
-    } prev;
+    unsigned char prev_free : 1;
+    unsigned char free : 1;
+    size_t prev_size;
+    size_t size;
     /* 
      * Zero length arrays do not add size to the structure, they simply
      * provide a syntactic form to refer to a char array following the
@@ -114,6 +110,10 @@ int mm_init(void)
     return 0;
 }
 
+static malloc_freelist(size_t size) {
+    return NULL;
+}
+
 /* 
  * mm_malloc - Allocate a block by incrementing the brk pointer.
  *     Always allocate a block whose size is a multiple of the alignment.
@@ -121,6 +121,11 @@ int mm_init(void)
 void *mm_malloc(size_t size)
 {
     int newsize = roundup(size + sizeof(struct allocated_block_header));
+    
+    void* reused = malloc_freelist(size_t size);
+    if (reused != NULL) {
+        return reused;
+    }
 
     struct allocated_block_header * blk = mem_sbrk(newsize);
     if (blk == NULL)
