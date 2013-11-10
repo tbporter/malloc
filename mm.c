@@ -172,10 +172,17 @@ void *mm_realloc(void *oldptr, size_t size)
     return newptr;
 }
 
-const int NUM_BUCKETS = 5;
+const int NUM_BUCKETS = 6;
 slist_node* free_lists[NUM_BUCKETS];
 
-slist_node* get_free_list(size_t size){
+int get_free_list(size_t size){
+    int i;
+    size_t startsize = 8;
+    for(i=0; i<NUM_BUCKETS; i++){
+        if(size <= startsize)
+            return i;
+        startsize = startsize << 1; 
+    }
 }
 
 typedef struct slist_node_struct {
