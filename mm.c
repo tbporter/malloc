@@ -96,6 +96,8 @@ struct block_header {
     char        payload[0] __attribute__((aligned(ALIGNMENT)));
 };
 
+static struct block_header* last_header;
+
 /* 
  * mm_init - initialize the malloc package.
  */
@@ -119,18 +121,22 @@ static void* malloc_freelist(size_t size) {
  */
 void *mm_malloc(size_t size)
 {
-    int newsize = roundup(size + sizeof(struct block_header));
-    
     void* reused = malloc_freelist(size_t size);
-    if (reused != NULL) {
+    if (reused != NULL)
         return reused;
-    }
+
+    int newsize = roundup(size + sizeof(struct block_header));
 
     struct block_header * blk = mem_sbrk(newsize);
     if (blk == NULL)
 	return NULL;
 
     blk->size = size;
+    blk->free = true;
+    blk->prev_size = (void*) blk - (void*) last_header;
+    blk->prev_free = last_header->free;
+    last_header = blk;
+
     return blk->payload;
 }
 
