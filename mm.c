@@ -21,12 +21,22 @@
 #include "memlib.h"
 #include "config.h"             /* defines ALIGNMENT */
 
+struct block_header {
+    unsigned char prev_free : 1;
+    unsigned char free : 1;
+    /* Size of previous payload */
+    size_t prev_size;
+    /* Size of payload */
+    size_t size;
+    char        payload[0] __attribute__((aligned(ALIGNMENT)));
+};
+
 /* Some useful macros */
 static void* prev_block(struct* block_header) {
-    return ((void*) block_header) - header->prev_size;
+    return (void*) block_header - header->prev_size - sizeof(struct block_header);
 }
 static void* next_block(struct* block_header) {
-    return ((void*) block_header) - header->size;
+    return ((void*) block_header) + header->size + sizeof(struct block_header);
 }
 static struct block_header* header_from_node(slist_node_t node) {
     return (struct block_header*) ((void*) node - sizeof(struct block_header));
@@ -75,33 +85,6 @@ static size_t roundup(size_t size)
     return (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
 }
 
-/* 
- * This C struct captures an allocated header.
- *
- * By casting a memory location to a pointer to a block_header,
- * we are able to treat a part of memory as if a header had been allocated
- * in it.
- *
- * Note: you should never define instances of 'struct block_header' -
- *       all accesses will be through pointers.
- */
-struct block_header {
-    unsigned char prev_free : 1;
-    unsigned char free : 1;
-    size_t prev_size;
-    size_t size;
-    /* 
-     * Zero length arrays do not add size to the structure, they simply
-     * provide a syntactic form to refer to a char array following the
-     * structure.
-     * See http://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html
-     *
-     * The 'aligned' attribute forces 'payload' to be aligned at a
-     * multiple of alignment, counted from the beginning of the struct
-     * See http://gcc.gnu.org/onlinedocs/gcc/Variable-Attributes.html
-     */
-    char        payload[0] __attribute__((aligned(ALIGNMENT)));
-};
 
 static struct block_header* last_header;
 
