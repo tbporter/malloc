@@ -98,6 +98,11 @@ int mm_init(void)
     assert(sizeof(struct block_header) == ALIGNMENT);
     assert(offsetof(struct block_header, size) == 0);
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
+    struct block_header* blk = mem_sbrk(sizeof(struct block_header));
+    blk->prev_size = 0;
+    blk->prev_free = false;
+    blk->size = 0;
+    blk->free = false;
     return 0;
 }
 /* Checks freelists for an appropriate malloc
@@ -139,10 +144,9 @@ void *mm_malloc(size_t size)
 
     blk->size = size;
     blk->free = true;
-    blk->prev_size = (size_t) ((void*) blk - (void*) last_header);
+    blk->prev_size = last_header->size;
     blk->prev_free = last_header->free;
     last_header = blk;
-
     return blk->payload;
 }
 
