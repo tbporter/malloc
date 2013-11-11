@@ -43,6 +43,7 @@ static struct block_header* last_header;
 
 /* Declarations of functions */
 int get_free_list(size_t size);
+void print_list(slist_node_t* list);
 
 /* Some useful macros */
 /* 
@@ -132,11 +133,12 @@ static void* malloc_freelist(size_t size) {
             list = list->next;
         }
 
+        slist_node_t* removed_node = list->next;
         if(list->next){
             list = list->next->next;
         }
 
-        return list->next;
+        return removed_node;
     }
     else{
         return NULL;
@@ -152,7 +154,10 @@ void *mm_malloc(size_t size)
 {
     void* reused = malloc_freelist(size);
     if (reused != NULL) {
-        assert(size <= header_from_node((slist_node_t*) reused));
+        assert(size <= header_from_node((slist_node_t*) reused)->size);
+        if (reused == (void*)0x5809c568) {
+            printf("Allocated that one block\n");
+        }
         return reused;
     }
 
@@ -167,6 +172,9 @@ void *mm_malloc(size_t size)
     blk->prev_size = last_header->size;
     blk->prev_free = last_header->free;
     last_header = blk;
+    if (&blk->payload == (void*)0x5809c568) {
+        printf("Allocated that one block\n");
+    }
     return blk->payload;
 }
 
@@ -175,9 +183,12 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
+    if (ptr == (void*)0x5809c568) {
+        printf("Freed that one block\n");
+    }
     slist_node_t* list = &free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
     ((slist_node_t*) ptr)->next = list->next;
-    list = (slist_node_t*) ptr;
+    list->next = (slist_node_t*) ptr;
 }
 
 /*
@@ -224,6 +235,13 @@ int get_list_size(slist_node_t* list){
         i++;
     }
     return i;
+}
+void print_list(slist_node_t* list){
+    while(list != NULL){
+        printf("%p - ", list);
+        list = list->next;
+    }
+    printf("\n");
 }
 
 // vim: ts=8
