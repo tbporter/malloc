@@ -19,13 +19,14 @@
 #include <stdbool.h>
 
 #include "mm.h"
+#include "list.h"
 #include "memlib.h"
 #include "config.h"             /* defines ALIGNMENT */
 
 #define NUM_BUCKETS 6
 
 typedef struct slist_node {
-    struct slist_node* next; 
+    struct list_elem elem; 
 } slist_node_t;
 
 struct block_header {
@@ -37,7 +38,7 @@ struct block_header {
     char        payload[0] __attribute__((aligned(ALIGNMENT)));
 };
 
-slist_node_t free_lists[NUM_BUCKETS];
+struct list free_lists[NUM_BUCKETS];
 static struct block_header* last_header;
 
 /* Declarations of functions */
@@ -128,24 +129,33 @@ int mm_init(void)
 /* Checks freelists for an appropriate malloc
     returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
-    slist_node_t* cur = &free_lists[get_free_list(size)];
+    slist_node_t* cur = free_lists[get_free_list(size)];
     slist_node_t* prev;
-    
+    block_header* cur_header;
+    block_header* next_header;
+    int new_size;
     //increment one down the list, since there is always a dummy node
     prev = cur;
-    cur = cur->next;
+    cur = list_next(cur);
 
     while(cur != NULL && header_from_node(cur)->size < size ){
+        cur_header = header_from_node(cur);
+        if(cur_header != last_header){
+            next_header = next_block(cur_header);
+            new_size = next_header->size + cur_header->size + sizeof(struct block_header);
+            if(next_header->free && newsize >= size){
+
+            }
+        }
         prev = cur;
-        cur = cur->next;
+        cur = list_next(cur);
     }
 
     if(cur){
-        prev->next = cur->next;
+        list_remove(cur);
     }
 
     return cur;
-
 }
 
 /* 
