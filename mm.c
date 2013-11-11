@@ -29,12 +29,12 @@ typedef struct slist_node {
 } slist_node_t;
 
 struct block_header {
-    unsigned char prev_free : 1;
-    unsigned char free : 1;
     /* Size of previous payload */
     size_t prev_size;
     /* Size of payload */
     size_t size;
+    unsigned char prev_free : 1;
+    unsigned char free : 1;
     char        payload[0] __attribute__((aligned(ALIGNMENT)));
 };
 
@@ -107,8 +107,7 @@ int mm_init(void)
 {
     /* Sanity checks. */
     assert((ALIGNMENT & (ALIGNMENT - 1)) == 0); // power of 2
-    assert(sizeof(struct block_header) == ALIGNMENT);
-    assert(offsetof(struct block_header, size) == 0);
+    assert(sizeof(struct block_header) % ALIGNMENT == 0);
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
     struct block_header* blk = mem_sbrk(sizeof(struct block_header));
     blk->prev_size = 0;
