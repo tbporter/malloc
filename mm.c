@@ -152,7 +152,7 @@ void *mm_malloc(size_t size)
 {
     void* reused = malloc_freelist(size);
     if (reused != NULL) {
-        printf("Using freelist\n");
+        assert(size <= header_from_node((slist_node_t*) reused));
         return reused;
     }
 
@@ -215,6 +215,15 @@ int get_free_list(size_t size){
         startsize = startsize << 1;
     }
     return NUM_BUCKETS - 1;
+}
+
+int get_list_size(slist_node_t* list){
+    int i = 0;
+    while(list != NULL){
+        list = list->next;
+        i++;
+    }
+    return i;
 }
 
 // vim: ts=8
