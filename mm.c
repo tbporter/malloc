@@ -53,7 +53,7 @@ static void* prev_block(struct block_header* header) {
 }*/
 
 static struct block_header* next_block(struct block_header* header) {
-    return (struct block_header*) (((void*) header) + header->size + sizeof(struct block_header));
+    return (struct block_header*) (header->payload + header->size);
 }
 
 static struct block_header* header_from_node(slist_node_t* node) {
@@ -111,6 +111,7 @@ int mm_init(void)
     assert((ALIGNMENT & (ALIGNMENT - 1)) == 0); // power of 2
     assert(sizeof(struct block_header) % ALIGNMENT == 0);
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
+    assert(offsetof(struct block_header, payload) == sizeof(struct block_header));
     struct block_header* blk = mem_sbrk(sizeof(struct block_header));
     int i;
 
@@ -169,9 +170,9 @@ void *mm_malloc(size_t size)
 
     struct block_header * blk = mem_sbrk(newsize);
     if (blk == NULL)
-	   return NULL;
+        return NULL;
 
-    blk->size = size;
+    blk->size = newsize - sizeof(struct block_header);
     blk->free = false;
     blk->prev_size = last_header->size;
     blk->prev_free = last_header->free;
