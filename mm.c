@@ -46,15 +46,16 @@ int get_free_list(size_t size);
 void print_list(slist_node_t* list);
 
 /* Some useful macros */
-/* 
- * Commented it out to compile
+ 
+/*
 static void* prev_block(struct block_header* header) {
     return (void*) header - header->prev_size - sizeof(struct block_header);
+}*/
+
+static struct block_header* next_block(struct block_header* header) {
+    return (struct block_header*) (((void*) header) + header->size + sizeof(struct block_header));
 }
-static void* next_block(struct block_header* header) {
-    return ((void*) header) + header->size + sizeof(struct block_header);
-}
-*/
+
 static struct block_header* header_from_node(slist_node_t* node) {
     return (struct block_header*) ((void*) node - sizeof(struct block_header));
 }
@@ -155,9 +156,11 @@ void *mm_malloc(size_t size)
 {
     void* reused = malloc_freelist(size);
     if (reused != NULL) {
-        assert(size <= header_from_node((slist_node_t*) reused)->size);
-        if (reused == (void*)0x5809c568) {
-            printf("Allocated that one block\n");
+        struct block_header* header = header_from_node((slist_node_t*) reused);
+        header->free = false;
+        if(header != last_header){
+            next_block(header)->prev_free = header->free;
+            next_block(header)->prev_size = header->size;
         }
         return reused;
     }
@@ -166,30 +169,32 @@ void *mm_malloc(size_t size)
 
     struct block_header * blk = mem_sbrk(newsize);
     if (blk == NULL)
-	return NULL;
+	   return NULL;
 
     blk->size = size;
-    blk->free = true;
+    blk->free = false;
     blk->prev_size = last_header->size;
     blk->prev_free = last_header->free;
     last_header = blk;
-    if (&blk->payload == (void*)0x5809c568) {
-        printf("Allocated that one block\n");
-    }
     return blk->payload;
 }
+/* set the next headers prev's free unless the current header's the last header*/
 
 /*
  * mm_free - Freeing a block does nothing.
  */
 void mm_free(void *ptr)
 {
-    if (ptr == (void*)0x5809c568) {
-        printf("Freed that one block\n");
-    }
-    slist_node_t* list = &free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
+
+    struct block_header* header = header_from_node((slist_node_t*) ptr);
+    slist_node_t* list = &free_lists[get_free_list(header->size)];
     ((slist_node_t*) ptr)->next = list->next;
     list->next = (slist_node_t*) ptr;
+    header->free = true;
+    if(header != last_header){
+        next_block(header)->prev_free = header->free;
+        next_block(header)->prev_size = header->size;
+    }
 }
 
 /*
