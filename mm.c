@@ -117,13 +117,20 @@ int mm_init(void)
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
     return 0;
 }
-/* Checks freelists for an appropriate malloc */
+/* Checks freelists for an appropriate malloc
+    returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
     slist_node* list = free_lists[get_free_list(size)];
     if(list != NULL){
-        while(list->next != NULL){
+        while(list->next != NULL && header_from_node(list->next)->size != size ){
             list = list->next;
         }
+
+        if(list->next){
+            list->next = list->next->next;
+        }
+
+        return list->next;
     }
     else{
         return NULL;
@@ -205,21 +212,5 @@ typedef struct slist_node_t {
 
 void insert_node(slist_node* list, void* node){
     ((slist_node) node)->next = list;
-}
-
-void remove_node(slist_node* list, void* n){
-    
-    slist_node* node = ((slist_node) n);
-
-    if(list == NULL)
-        return;
-
-
-    while(list->next != NULL && list->next != node)
-        list = list->next;
-
-    if(list->next != NULL){
-        list->next = node->next;
-    }
 }
 // vim: ts=8
