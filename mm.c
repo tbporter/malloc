@@ -237,9 +237,11 @@ int get_list_size(slist_node_t* list){
     return i;
 }
 void print_list(slist_node_t* list){
-    while(list != NULL){
+    int i = 0;
+    while(list != NULL && i < 10){
         printf("%p - ", list);
         list = list->next;
+        i++;
     }
     printf("\n");
 }
