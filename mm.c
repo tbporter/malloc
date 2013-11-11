@@ -122,7 +122,7 @@ int mm_init(void)
 static void* malloc_freelist(size_t size) {
     slist_node_t* list = free_lists[get_free_list(size)];
     if(list != NULL){
-        while(list->next != NULL && header_from_node(list->next)->size != size ){
+        while(list->next != NULL && header_from_node(list->next)->size < size ){
             list = list->next;
         }
 
