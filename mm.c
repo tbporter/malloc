@@ -33,7 +33,6 @@ struct block_header {
     size_t prev_size;
     /* Size of payload */
     size_t size;
-    unsigned char prev_free : 1;
     unsigned char free : 1;
     char        payload[0] __attribute__((aligned(ALIGNMENT)));
 };
@@ -44,13 +43,14 @@ static struct block_header* last_header;
 /* Declarations of functions */
 int get_free_list(size_t size);
 void print_list(slist_node_t* list);
-
+void remove_from_list(struct block_header* header);
+int get_list_size(slist_node_t* list);
 /* Some useful macros */
  
-/*
-static void* prev_block(struct block_header* header) {
-    return (void*) header - header->prev_size - sizeof(struct block_header);
-}*/
+
+static struct block_header* prev_block(struct block_header* header) {
+    return (struct block_header*) ((void*) header - header->prev_size - sizeof(struct block_header));
+}
 
 static struct block_header* next_block(struct block_header* header) {
     return (struct block_header*) (header->payload + header->size);
@@ -121,7 +121,6 @@ int mm_init(void)
 
     last_header = blk;
     blk->prev_size = 0;
-    blk->prev_free = false;
     blk->size = 0;
     blk->free = false;
     return 0;
@@ -160,7 +159,6 @@ void *mm_malloc(size_t size)
         struct block_header* header = header_from_node((slist_node_t*) reused);
         header->free = false;
         if(header != last_header){
-            next_block(header)->prev_free = header->free;
             next_block(header)->prev_size = header->size;
         }
         return reused;
@@ -175,7 +173,6 @@ void *mm_malloc(size_t size)
     blk->size = newsize - sizeof(struct block_header);
     blk->free = false;
     blk->prev_size = last_header->size;
-    blk->prev_free = last_header->free;
     last_header = blk;
     return blk->payload;
 }
@@ -192,10 +189,6 @@ void mm_free(void *ptr)
     ((slist_node_t*) ptr)->next = list->next;
     list->next = (slist_node_t*) ptr;
     header->free = true;
-    if(header != last_header){
-        next_block(header)->prev_free = header->free;
-        next_block(header)->prev_size = header->size;
-    }
 }
 
 /*
@@ -203,6 +196,52 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *oldptr, size_t size)
 {
+    struct block_header* header = header_from_node((slist_node_t*) oldptr);
+    struct block_header* prev_header = prev_block(header);
+    struct block_header* next_header = next_block(header);
+    
+    if(header->size >= size){
+        return oldptr;
+    }
+
+    int new_size = prev_header->size + header->size + sizeof(struct block_header);
+    /*if(prev_header->free &&  new_size >= size){
+        remove_from_list(prev_header);
+        prev_header->size = new_size;
+        prev_header->free = false;
+        assert(header->free == false);
+
+        memcpy(prev_header->payload, oldptr, new_size);
+        return prev_header->payload;
+    }*/
+
+    
+    
+    if(header != last_header){
+        new_size = next_header->size + header->size + sizeof(struct block_header);
+        if(next_header->free && new_size >= size){
+            remove_from_list(next_header);
+            
+            if(next_header == last_header){
+                last_header = header;
+            }else{
+                next_header->prev_size = new_size;
+            }
+            assert(header->free == false);
+            header->size = new_size;
+            return oldptr;        
+        }
+    }else{
+
+        int diff_size = size - header->size;
+        mem_sbrk(diff_size);
+
+        header->size = size;
+        return oldptr;
+    }
+
+
+
     void *newptr = mm_malloc(size);
     if (newptr == NULL)
       return NULL;
@@ -210,7 +249,8 @@ void *mm_realloc(void *oldptr, size_t size)
     /* Assuming 'oldptr' was a '&payload[0]' in an block_header,
      * determine its start as 'oldblk'.  Then its size can be accessed
      * more easily.
-     */
+    */
+
     struct block_header *oldblk;
     oldblk = oldptr - offsetof(struct block_header, payload);
 
@@ -218,11 +258,38 @@ void *mm_realloc(void *oldptr, size_t size)
     if (size < copySize)
       copySize = size;
 
+
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
     return newptr;
 }
 
+void remove_from_list(struct block_header* header){
+
+
+    slist_node_t* cur = &free_lists[get_free_list(header->size)];
+    slist_node_t* prev;
+    //increment one down the list, since there is always a dummy node
+    prev = cur;
+    cur = cur->next;
+
+    while(cur != NULL && cur != (slist_node_t*) header->payload){
+        prev = cur;
+        cur = cur->next;
+    }
+
+    if(cur){
+        prev->next = cur->next;
+    }
+    if (cur==NULL) {
+        int i;
+        for (i = 0; i < NUM_BUCKETS; i++) {
+            print_list(&free_lists[i]);
+        }
+        printf("header: %p, free: %d\n", header->payload, header->free);
+    }
+    assert(cur!=NULL);
+}
 
 int get_free_list(size_t size){
     int i;
