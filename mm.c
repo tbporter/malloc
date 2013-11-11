@@ -110,6 +110,7 @@ int mm_init(void)
     assert(sizeof(struct block_header) % ALIGNMENT == 0);
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
     struct block_header* blk = mem_sbrk(sizeof(struct block_header));
+    last_header = blk;
     blk->prev_size = 0;
     blk->prev_free = false;
     blk->size = 0;
