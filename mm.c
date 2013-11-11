@@ -112,6 +112,7 @@ int mm_init(void)
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
     struct block_header* blk = mem_sbrk(sizeof(struct block_header));
     int i;
+
     for (i = 0; i < NUM_BUCKETS; i++) {
         free_lists[i].next = NULL;
     }
@@ -126,23 +127,23 @@ int mm_init(void)
 /* Checks freelists for an appropriate malloc
     returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
-    slist_node_t* list = &free_lists[get_free_list(size)];
-    list = list->next;
-    if(list != NULL){
-        while(list->next != NULL && header_from_node(list->next)->size < size ){
-            list = list->next;
-        }
+    slist_node_t* cur = &free_lists[get_free_list(size)];
+    slist_node_t* prev;
+    
+    //increment one down the list, since there is always a dummy node
+    prev = cur;
+    cur = cur->next;
 
-        slist_node_t* removed_node = list->next;
-        if(list->next){
-            list = list->next->next;
-        }
+    while(cur != NULL && header_from_node(cur)->size < size ){
+        prev = cur;
+        cur = cur->next;
+    }
 
-        return removed_node;
+    if(cur){
+        prev->next = cur->next;
     }
-    else{
-        return NULL;
-    }
+
+    return cur;
 
 }
 
