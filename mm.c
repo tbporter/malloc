@@ -16,10 +16,17 @@
 #include <unistd.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "mm.h"
 #include "memlib.h"
 #include "config.h"             /* defines ALIGNMENT */
+
+#define NUM_BUCKETS 6
+
+typedef struct slist_node {
+    struct slist_node* next; 
+} slist_node_t;
 
 struct block_header {
     unsigned char prev_free : 1;
@@ -31,17 +38,27 @@ struct block_header {
     char        payload[0] __attribute__((aligned(ALIGNMENT)));
 };
 
+slist_node_t* free_lists[NUM_BUCKETS];
+static struct block_header* last_header;
+
+/* Declarations of functions */
+int get_free_list(size_t size);
+
 /* Some useful macros */
-static void* prev_block(struct* block_header) {
-    return (void*) block_header - header->prev_size - sizeof(struct block_header);
+/* 
+ * Commented it out to compile
+static void* prev_block(struct block_header* header) {
+    return (void*) header - header->prev_size - sizeof(struct block_header);
 }
-static void* next_block(struct* block_header) {
-    return ((void*) block_header) + header->size + sizeof(struct block_header);
+static void* next_block(struct block_header* header) {
+    return ((void*) header) + header->size + sizeof(struct block_header);
 }
-static struct block_header* header_from_node(slist_node_t node) {
+*/
+static struct block_header* header_from_node(slist_node_t* node) {
     return (struct block_header*) ((void*) node - sizeof(struct block_header));
 }
 /* Round up to next power of 2 */
+/*
 static size_t round_power(size_t size) {
     size--;
     size |= size >> 1;
@@ -51,6 +68,7 @@ static size_t round_power(size_t size) {
     size |= size >> 16;
     return 1 + size;
 }
+*/
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -69,9 +87,6 @@ team_t team = {
     "cwinkows"
 };
 
-const int NUM_BUCKETS = 6;
-slist_node* free_lists[NUM_BUCKETS];
-
 
 /* 
  * If size is a multiple of ALIGNMENT, return size.
@@ -84,9 +99,6 @@ static size_t roundup(size_t size)
 {
     return (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
 }
-
-
-static struct block_header* last_header;
 
 /* 
  * mm_init - initialize the malloc package.
@@ -108,7 +120,7 @@ int mm_init(void)
 /* Checks freelists for an appropriate malloc
     returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
-    slist_node* list = free_lists[get_free_list(size)];
+    slist_node_t* list = free_lists[get_free_list(size)];
     if(list != NULL){
         while(list->next != NULL && header_from_node(list->next)->size != size ){
             list = list->next;
@@ -132,7 +144,7 @@ static void* malloc_freelist(size_t size) {
  */
 void *mm_malloc(size_t size)
 {
-    void* reused = malloc_freelist(size_t size);
+    void* reused = malloc_freelist(size);
     if (reused != NULL)
         return reused;
 
@@ -155,8 +167,8 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
-    slist_node* list = free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
-    ((slist_node*) ptr)->next = list;
+    slist_node_t* list = free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
+    ((slist_node_t*) ptr)->next = list;
     list = ptr;
 }
 
@@ -194,9 +206,7 @@ int get_free_list(size_t size){
             return i;
         startsize = startsize << 1;
     }
+    return NUM_BUCKETS;
 }
 
-typedef struct slist_node_t {
-    struct node_struct* next; 
-} slist_node;
 // vim: ts=8
