@@ -151,6 +151,9 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
+    slist_node* list = free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
+    ((slist_node*) ptr)->next = list;
+    list = ptr;
 }
 
 /*
@@ -192,8 +195,4 @@ int get_free_list(size_t size){
 typedef struct slist_node_t {
     struct node_struct* next; 
 } slist_node;
-
-void insert_node(slist_node* list, void* node){
-    ((slist_node) node)->next = list;
-}
 // vim: ts=8
