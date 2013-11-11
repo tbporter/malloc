@@ -38,7 +38,7 @@ struct block_header {
     char        payload[0] __attribute__((aligned(ALIGNMENT)));
 };
 
-slist_node_t* free_lists[NUM_BUCKETS];
+slist_node_t free_lists[NUM_BUCKETS];
 static struct block_header* last_header;
 
 /* Declarations of functions */
@@ -110,6 +110,11 @@ int mm_init(void)
     assert(sizeof(struct block_header) % ALIGNMENT == 0);
     assert(offsetof(struct block_header, payload) % ALIGNMENT == 0);
     struct block_header* blk = mem_sbrk(sizeof(struct block_header));
+    int i;
+    for (i = 0; i < NUM_BUCKETS; i++) {
+        free_lists[i].next = NULL;
+    }
+
     last_header = blk;
     blk->prev_size = 0;
     blk->prev_free = false;
@@ -120,14 +125,14 @@ int mm_init(void)
 /* Checks freelists for an appropriate malloc
     returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
-    slist_node_t* list = free_lists[get_free_list(size)];
+    slist_node_t* list = &free_lists[get_free_list(size)];
     if(list != NULL){
         while(list->next != NULL && header_from_node(list->next)->size < size ){
             list = list->next;
         }
 
         if(list->next){
-            list->next = list->next->next;
+            list = list->next->next;
         }
 
         return list->next;
@@ -145,8 +150,10 @@ static void* malloc_freelist(size_t size) {
 void *mm_malloc(size_t size)
 {
     void* reused = malloc_freelist(size);
-    if (reused != NULL)
+    if (reused != NULL) {
+        printf("Using freelist\n");
         return reused;
+    }
 
     int newsize = roundup(size + sizeof(struct block_header));
 
@@ -167,9 +174,9 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
-    slist_node_t* list = free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
-    ((slist_node_t*) ptr)->next = list;
-    list = ptr;
+    slist_node_t* list = &free_lists[get_free_list(header_from_node((slist_node_t*) ptr)->size)];
+    ((slist_node_t*) ptr)->next = list->next;
+    list = (slist_node_t*) ptr;
 }
 
 /*
@@ -206,7 +213,7 @@ int get_free_list(size_t size){
             return i;
         startsize = startsize << 1;
     }
-    return NUM_BUCKETS;
+    return NUM_BUCKETS - 1;
 }
 
 // vim: ts=8
