@@ -39,9 +39,9 @@ static struct block_header* last_header;
 
 /* Declarations of functions */
 int get_free_list(size_t size);
-void print_list(list* list);
+void print_list(struct list* list);
 void remove_from_list(struct block_header* header);
-int get_list_size(list* list);
+int get_list_size(struct list* list);
 /* Some useful macros */
  
 
@@ -53,7 +53,7 @@ static struct block_header* next_block(struct block_header* header) {
     return (struct block_header*) (header->payload + header->size);
 }
 
-static struct block_header* header_from_node(list_elem* node) {
+static struct block_header* header_from_node(struct list_elem* node) {
     return (struct block_header*) ((void*) node - sizeof(struct block_header));
 }
 /* Round up to next power of 2 */
@@ -124,22 +124,22 @@ int mm_init(void)
 /* Checks freelists for an appropriate malloc
     returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
-    list* l = free_lists[get_free_list(size)];
-    list_elem* cur = l->head;
-    list_elem* prev;
-    block_header* cur_header;
-    block_header* next_header;
+    struct list* l = &free_lists[get_free_list(size)];
+    struct list_elem* cur = &l->head;
+    struct list_elem* prev;
+    struct block_header* cur_header;
+    struct block_header* next_header;
     int new_size;
     //increment one down the list, since there is always a dummy node
     prev = cur;
     cur = list_next(cur);
 
-    while(cur != NULL && header_from_node(cur)->size < size ){
+    while (cur != NULL && header_from_node(cur)->size < size) {
         cur_header = header_from_node(cur);
-        if(cur_header != last_header){
+        if (cur_header != last_header) {
             next_header = next_block(cur_header);
             new_size = next_header->size + cur_header->size + sizeof(struct block_header);
-            if(next_header->free && newsize >= size){
+            if (next_header->free && new_size >= size) {
 
             }
         }
@@ -162,9 +162,9 @@ void *mm_malloc(size_t size)
 {
     void* reused = malloc_freelist(size);
     if (reused != NULL) {
-        struct block_header* header = header_from_node((list_elem*) reused);
+        struct block_header* header = header_from_node((struct list_elem*) reused);
         header->free = false;
-        if(header != last_header){
+        if (header != last_header) {
             next_block(header)->prev_size = header->size;
         }
         return reused;
@@ -190,10 +190,10 @@ void *mm_malloc(size_t size)
 void mm_free(void *ptr)
 {
 
-    struct block_header* header = header_from_node((list_elem*) ptr);
-    list* l = &free_lists[get_free_list(header->size)];
-    ((list_elem*) ptr)->next = l->head;
-    l->next = (list_elem*) ptr;
+    struct block_header* header = header_from_node((struct list_elem*) ptr);
+    struct list* l = &free_lists[get_free_list(header->size)];
+    ((struct list_elem*) ptr)->next = &l->head;
+    l->next = (struct list_elem*) ptr;
     header->free = true;
 }
 
@@ -202,7 +202,7 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *oldptr, size_t size)
 {
-    struct block_header* header = header_from_node((list_elem*) oldptr);
+    struct block_header* header = header_from_node((struct list_elem*) oldptr);
     struct block_header* prev_header = prev_block(header);
     struct block_header* next_header = next_block(header);
     
@@ -272,14 +272,14 @@ void *mm_realloc(void *oldptr, size_t size)
 
 void remove_from_list(struct block_header* header){
 
-    list* l = &free_lists[get_free_list(header->size)];
-    list_elem* cur = l->head;
-    list_elem* prev;
+    struct list* l = &free_lists[get_free_list(header->size)];
+    struct list_elem* cur = &l->head;
+    struct list_elem* prev;
     //increment one down the list, since there is always a dummy node
     prev = cur;
     cur = cur->next;
 
-    while(cur != NULL && cur != (list_elem*) header->payload){
+    while(cur != NULL && cur != (struct list_elem*) header->payload){
         prev = cur;
         cur = cur->next;
     }
@@ -308,18 +308,18 @@ int get_free_list(size_t size){
     return NUM_BUCKETS - 1;
 }
 
-int get_list_size(list* l){
+int get_list_size(struct list* l){
     int i = 0;
-    list_elem* elem = l->head;
+    struct list_elem* elem = &l->head;
     while(elem != NULL){
         elem = elem->next;
         i++;
     }
     return i;
 }
-void print_list(list* l){
+void print_list(struct list* l){
     int i = 0;
-    list_elem* elem = l->head;
+    struct list_elem* elem = &l->head;
     while(elem != NULL && i < 10){
         printf("%p - ", elem);
         elem = elem->next;
