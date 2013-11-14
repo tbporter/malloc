@@ -25,10 +25,6 @@
 
 #define NUM_BUCKETS 6
 
-typedef struct slist_node {
-    struct list_elem elem; 
-} slist_node_t;
-
 struct block_header {
     /* Size of previous payload */
     size_t prev_size;
@@ -43,9 +39,9 @@ static struct block_header* last_header;
 
 /* Declarations of functions */
 int get_free_list(size_t size);
-void print_list(slist_node_t* list);
+void print_list(list* list);
 void remove_from_list(struct block_header* header);
-int get_list_size(slist_node_t* list);
+int get_list_size(list* list);
 /* Some useful macros */
  
 
@@ -57,7 +53,7 @@ static struct block_header* next_block(struct block_header* header) {
     return (struct block_header*) (header->payload + header->size);
 }
 
-static struct block_header* header_from_node(slist_node_t* node) {
+static struct block_header* header_from_node(list_elem* node) {
     return (struct block_header*) ((void*) node - sizeof(struct block_header));
 }
 /* Round up to next power of 2 */
@@ -116,9 +112,8 @@ int mm_init(void)
     struct block_header* blk = mem_sbrk(sizeof(struct block_header));
     int i;
 
-    for (i = 0; i < NUM_BUCKETS; i++) {
-        free_lists[i].next = NULL;
-    }
+    for (i = 0; i < NUM_BUCKETS; i++)
+        list_init(&free_lists[i]);
 
     last_header = blk;
     blk->prev_size = 0;
@@ -129,8 +124,9 @@ int mm_init(void)
 /* Checks freelists for an appropriate malloc
     returns a payload if there is an exact match on one of the free lists, else null */
 static void* malloc_freelist(size_t size) {
-    slist_node_t* cur = free_lists[get_free_list(size)];
-    slist_node_t* prev;
+    list* l = free_lists[get_free_list(size)];
+    list_elem* cur = l->head;
+    list_elem* prev;
     block_header* cur_header;
     block_header* next_header;
     int new_size;
@@ -166,7 +162,7 @@ void *mm_malloc(size_t size)
 {
     void* reused = malloc_freelist(size);
     if (reused != NULL) {
-        struct block_header* header = header_from_node((slist_node_t*) reused);
+        struct block_header* header = header_from_node((list_elem*) reused);
         header->free = false;
         if(header != last_header){
             next_block(header)->prev_size = header->size;
@@ -194,10 +190,10 @@ void *mm_malloc(size_t size)
 void mm_free(void *ptr)
 {
 
-    struct block_header* header = header_from_node((slist_node_t*) ptr);
-    slist_node_t* list = &free_lists[get_free_list(header->size)];
-    ((slist_node_t*) ptr)->next = list->next;
-    list->next = (slist_node_t*) ptr;
+    struct block_header* header = header_from_node((list_elem*) ptr);
+    list* l = &free_lists[get_free_list(header->size)];
+    ((list_elem*) ptr)->next = l->head;
+    l->next = (list_elem*) ptr;
     header->free = true;
 }
 
@@ -206,7 +202,7 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *oldptr, size_t size)
 {
-    struct block_header* header = header_from_node((slist_node_t*) oldptr);
+    struct block_header* header = header_from_node((list_elem*) oldptr);
     struct block_header* prev_header = prev_block(header);
     struct block_header* next_header = next_block(header);
     
@@ -276,14 +272,14 @@ void *mm_realloc(void *oldptr, size_t size)
 
 void remove_from_list(struct block_header* header){
 
-
-    slist_node_t* cur = &free_lists[get_free_list(header->size)];
-    slist_node_t* prev;
+    list* l = &free_lists[get_free_list(header->size)];
+    list_elem* cur = l->head;
+    list_elem* prev;
     //increment one down the list, since there is always a dummy node
     prev = cur;
     cur = cur->next;
 
-    while(cur != NULL && cur != (slist_node_t*) header->payload){
+    while(cur != NULL && cur != (list_elem*) header->payload){
         prev = cur;
         cur = cur->next;
     }
@@ -312,19 +308,21 @@ int get_free_list(size_t size){
     return NUM_BUCKETS - 1;
 }
 
-int get_list_size(slist_node_t* list){
+int get_list_size(list* l){
     int i = 0;
-    while(list != NULL){
-        list = list->next;
+    list_elem* elem = l->head;
+    while(elem != NULL){
+        elem = elem->next;
         i++;
     }
     return i;
 }
-void print_list(slist_node_t* list){
+void print_list(list* l){
     int i = 0;
-    while(list != NULL && i < 10){
-        printf("%p - ", list);
-        list = list->next;
+    list_elem* elem = l->head;
+    while(elem != NULL && i < 10){
+        printf("%p - ", elem);
+        elem = elem->next;
         i++;
     }
     printf("\n");
