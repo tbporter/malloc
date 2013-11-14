@@ -124,32 +124,41 @@ int mm_init(void)
 static void* malloc_freelist(size_t size) {
     struct list* l = &free_lists[get_free_list(size)];
     struct list_elem* cur = &l->head;
-    struct list_elem* prev;
     struct block_header* cur_header;
     struct block_header* next_header;
     int new_size;
     //increment one down the list, since there is always a dummy node
-    prev = cur;
     cur = list_next(cur);
 
-    while (cur != NULL && header_from_node(cur)->size < size) {
+    struct list_elem* tail = list_end(l);
+    while (cur != tail && header_from_node(cur)->size < size) {
         cur_header = header_from_node(cur);
         if (cur_header != last_header) {
             next_header = next_block(cur_header);
             new_size = next_header->size + cur_header->size + sizeof(struct block_header);
             if (next_header->free && new_size >= size) {
-
+                last_header = cur_header;
+                cur_header->size = new_size;
+                cur_header->free = false;
+                if (next_block(next_header) != last_header) {
+                    next_block(next_header)->prev_size = new_size;
+                }
+                list_remove((struct list_elem*) next_header->payload);
+                list_remove((struct list_elem*) cur_header->payload);
+                return cur;
             }
         }
-        prev = cur;
         cur = list_next(cur);
     }
-
-    if(cur){
-        list_remove(cur);
+    /* exit loops either not finding one or cur = valid node */
+    if (cur != tail) {
+        cur_header = header_from_node(cur);
+        cur_header->free = false;
+        list_remove((struct list_elem*) cur);
+        return cur;
     }
 
-    return cur;
+    return NULL;
 }
 
 /* 
