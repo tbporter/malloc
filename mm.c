@@ -40,8 +40,6 @@ static struct block_header* last_header;
 /* Declarations of functions */
 int get_free_list(size_t size);
 void print_list(struct list* list);
-void remove_from_list(struct block_header* header);
-int get_list_size(struct list* list);
 /* Some useful macros */
  
 
@@ -192,8 +190,8 @@ void mm_free(void *ptr)
 
     struct block_header* header = header_from_node((struct list_elem*) ptr);
     struct list* l = &free_lists[get_free_list(header->size)];
-    ((struct list_elem*) ptr)->next = &l->head;
-    l->next = (struct list_elem*) ptr;
+    
+    list_push_front (l, (struct list_elem*) ptr);
     header->free = true;
 }
 
@@ -226,8 +224,7 @@ void *mm_realloc(void *oldptr, size_t size)
     if(header != last_header){
         new_size = next_header->size + header->size + sizeof(struct block_header);
         if(next_header->free && new_size >= size){
-            remove_from_list(next_header);
-            
+            list_remove((struct list_elem*) next_header->payload);
             if(next_header == last_header){
                 last_header = header;
             }else{
@@ -269,34 +266,6 @@ void *mm_realloc(void *oldptr, size_t size)
     mm_free(oldptr);
     return newptr;
 }
-
-void remove_from_list(struct block_header* header){
-
-    struct list* l = &free_lists[get_free_list(header->size)];
-    struct list_elem* cur = &l->head;
-    struct list_elem* prev;
-    //increment one down the list, since there is always a dummy node
-    prev = cur;
-    cur = cur->next;
-
-    while(cur != NULL && cur != (struct list_elem*) header->payload){
-        prev = cur;
-        cur = cur->next;
-    }
-
-    if(cur){
-        prev->next = cur->next;
-    }
-    if (cur==NULL) {
-        int i;
-        for (i = 0; i < NUM_BUCKETS; i++) {
-            print_list(&free_lists[i]);
-        }
-        printf("header: %p, free: %d\n", header->payload, header->free);
-    }
-    assert(cur!=NULL);
-}
-
 int get_free_list(size_t size){
     int i;
     size_t startsize = 8;
@@ -308,15 +277,6 @@ int get_free_list(size_t size){
     return NUM_BUCKETS - 1;
 }
 
-int get_list_size(struct list* l){
-    int i = 0;
-    struct list_elem* elem = &l->head;
-    while(elem != NULL){
-        elem = elem->next;
-        i++;
-    }
-    return i;
-}
 void print_list(struct list* l){
     int i = 0;
     struct list_elem* elem = &l->head;
