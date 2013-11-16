@@ -131,7 +131,8 @@ static void* malloc_freelist(size_t size) {
     cur = list_next(cur);
 
     struct list_elem* tail = list_end(l);
-    while (cur != tail && header_from_node(cur)->size < size) {
+    int count = 0;
+    while (count < 10 && cur != tail && header_from_node(cur)->size < size) {
         cur_header = header_from_node(cur);
         if (cur_header != last_header) {
             next_header = next_block(cur_header);
@@ -149,9 +150,10 @@ static void* malloc_freelist(size_t size) {
             }
         }
         cur = list_next(cur);
+        count++;
     }
     /* exit loops either not finding one or cur = valid node */
-    if (cur != tail) {
+    if (count < 10 && cur != tail) {
         cur_header = header_from_node(cur);
         cur_header->free = false;
         list_remove((struct list_elem*) cur);
