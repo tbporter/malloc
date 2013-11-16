@@ -31,7 +31,11 @@
 #define LINENUM(i) (i+5) /* cnvt trace request nums to linenums (origin 1) */
 
 /* Returns true if p is ALIGNMENT-byte aligned */
+#if __x86_64__
+#define IS_ALIGNED(p)  ((((unsigned long)(p)) % ALIGNMENT) == 0)
+#else
 #define IS_ALIGNED(p)  ((((unsigned int)(p)) % ALIGNMENT) == 0)
+#endif
 
 /****************************** 
  * The key compound data types 
