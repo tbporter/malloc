@@ -132,7 +132,7 @@ static void* malloc_freelist(size_t size) {
 
     struct list_elem* tail = list_end(l);
     int count = 0;
-    while (count < 10 && cur != tail){// && header_from_node(cur)->size < size) {
+    while (count < 10 && cur != tail && header_from_node(cur)->size < size) {
         cur_header = header_from_node(cur);
         if (cur_header != last_header) {
             next_header = next_block(cur_header);
