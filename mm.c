@@ -1,14 +1,8 @@
-/*
- * mm-naive.c - The fastest, least memory-efficient malloc package.
- * 
- * In this naive approach, a block is allocated by simply incrementing
- * the brk pointer.  Only a header is stored with the size to allow
- * for realloc() to retrieve the block size.  Blocks are never coalesced 
- * or reused in this naive implementation. Realloc is
- * implemented directly using mm_malloc and mm_free.
- *
- * NOTE TO STUDENTS: Replace this header comment with your own header
- * comment that gives a high level description of your solution.
+/* 
+ * In our approach we use a segmented list to keep track of all the free blocks.
+ * We segmented based off of powers of 2. Our lists are doubly linked, using the payload to store the list_elem*
+ * Our header stores the size, prev_size, and if it's free. Using the prev_size we can look at the previous node.
+ * When reallocing we coalesc blocks together. Aswell as just checking free blocks for a correct size
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,33 +33,22 @@ static struct block_header* last_header;
 
 /* Declarations of functions */
 int get_free_list(size_t size);
-void print_list(struct list* list);
+
+
 /* Some useful macros */
  
-
+/* return's the previous block header */
 static struct block_header* prev_block(struct block_header* header) {
     return (struct block_header*) ((void*) header - header->prev_size - sizeof(struct block_header));
 }
-
+/* returns the next block header */
 static struct block_header* next_block(struct block_header* header) {
     return (struct block_header*) (header->payload + header->size);
 }
-
+/* gets a header from the payload */
 static struct block_header* header_from_node(struct list_elem* node) {
     return (struct block_header*) ((void*) node - sizeof(struct block_header));
 }
-/* Round up to next power of 2 */
-/*
-static size_t round_power(size_t size) {
-    size--;
-    size |= size >> 1;
-    size |= size >> 2;
-    size |= size >> 4;
-    size |= size >> 8;
-    size |= size >> 16;
-    return 1 + size;
-}
-*/
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -280,6 +263,9 @@ void *mm_realloc(void *oldptr, size_t size)
     mm_free(oldptr);
     return newptr;
 }
+/*  returns the free_list index based off the size,
+ *  starting at block size of 8, goes up by a power of 2
+ */
 int get_free_list(size_t size){
     int i;
     size_t startsize = 8;
@@ -291,18 +277,8 @@ int get_free_list(size_t size){
     return NUM_BUCKETS - 1;
 }
 
-void print_list(struct list* l){
-    int i = 0;
-    struct list_elem* elem = &l->head;
-    while(elem != NULL && i < 10){
-        printf("%p - ", elem);
-        elem = elem->next;
-        i++;
-    }
-    printf("\n");
-}
-
-//returns of true if it exists
+/* returns true if it exists
+ */
 bool exist_in_free(struct block_header* b){
     struct list_elem* blk = (struct list_elem*) b->payload;
     struct list* l =  &free_lists[get_free_list(b->size)];;
@@ -315,7 +291,9 @@ bool exist_in_free(struct block_header* b){
     return (blk == i);
 }
 
-//returns true if all free blocks exist in the free lists
+/*  returns true if all free blocks exist in the free lists
+ *  If the header sizes are incorrect, it will break, likely segfaulting
+ */
 bool mm_check(){
     struct block_header* cur = (struct block_header*) mem_heap_lo();
     while(cur != last_header){
