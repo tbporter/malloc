@@ -302,4 +302,29 @@ void print_list(struct list* l){
     printf("\n");
 }
 
+//returns of true if it exists
+bool exist_in_free(struct block_header* b){
+    struct list_elem* blk = (struct list_elem*) b->payload;
+    struct list* l =  &free_lists[get_free_list(b->size)];;
+    struct list_elem* i;
+    for(i = list_front(l); i != list_tail(l); i = list_next(i)){
+        if(blk == i)
+            return true; //we found 
+    }
+    //return the check on tail
+    return (blk == i);
+}
+
+//returns true if all free blocks exist in the free lists
+bool mm_check(){
+    struct block_header* cur = (struct block_header*) mem_heap_lo();
+    while(cur != last_header){
+        if(cur->free)
+            if(!exist_in_free(cur))
+                return false;
+        cur = next_block(cur);
+    }
+    //return the check on the last header
+    return exist_in_free(cur);
+}
 // vim: ts=8
