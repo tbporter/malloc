@@ -132,18 +132,19 @@ static void* malloc_freelist(size_t size) {
 
     struct list_elem* tail = list_end(l);
     int count = 0;
-    while (count < 10 && cur != tail && header_from_node(cur)->size < size) {
+    while (count < 10 && cur != tail){// && header_from_node(cur)->size < size) {
         cur_header = header_from_node(cur);
         if (cur_header != last_header) {
             next_header = next_block(cur_header);
             new_size = next_header->size + cur_header->size + sizeof(struct block_header);
             if (next_header->free && new_size >= size) {
-                last_header = cur_header;
                 cur_header->size = new_size;
                 cur_header->free = false;
-                if (next_block(next_header) != last_header) {
-                    next_block(next_header)->prev_size = new_size;
+                if (next_header != last_header) {
+                    next_header->prev_size = new_size;
                 }
+                else
+                    last_header = cur_header;
                 list_remove((struct list_elem*) next_header->payload);
                 list_remove((struct list_elem*) cur_header->payload);
                 return cur;
@@ -172,9 +173,11 @@ void *mm_malloc(size_t size)
     void* reused = malloc_freelist(size);
     if (reused != NULL) {
         struct block_header* header = header_from_node((struct list_elem*) reused);
-        header->free = false;
-        if (header != last_header) {
-            next_block(header)->prev_size = header->size;
+        if(header->free){
+            header->free = false;
+            if (header != last_header) {
+                next_block(header)->prev_size = header->size;
+            }
         }
         return reused;
     }
